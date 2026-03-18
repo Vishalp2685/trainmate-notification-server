@@ -8,6 +8,7 @@ class NotificationEventType(str, Enum):
     STATION_REACHED = "station_reached"
     FRIEND_REQUEST = "friend_request"
     FRIEND_REQUEST_RESPONSE = "friend_request_response"
+    CHAT = "chat"
 
 
 class FriendRequestStatus(str, Enum):
@@ -40,6 +41,17 @@ class FriendRequestResponseEventRequest(BaseModel):
     status: FriendRequestStatus
 
 
+class SendMessageRequest(BaseModel):
+    receiver_id: int = Field(gt=0)
+    content: str = Field(min_length=1)
+
+
+class GetChatHistoryRequest(BaseModel):
+    friend_id: int = Field(gt=0)
+    limit: int = Field(default=50, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+
 class NotificationPayload(BaseModel):
     type: NotificationEventType
     title: str
@@ -54,12 +66,14 @@ class WebSocketAck(BaseModel):
 
 
 class WebSocketClientMessage(BaseModel):
-    type: Literal["ping"]
+    type: Literal["ping", "chat"]
+    receiver_id: Optional[int] = None
+    content: Optional[str] = None
 
     @field_validator("type")
     @classmethod
     def validate_type(cls, value: str) -> str:
-        if value != "ping":
-            raise ValueError("Only ping messages are allowed over websocket")
+        if value not in ["ping", "chat"]:
+            raise ValueError("Only ping and chat messages are allowed over websocket")
         return value
 

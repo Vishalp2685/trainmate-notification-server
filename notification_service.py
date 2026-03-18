@@ -117,6 +117,33 @@ class NotificationService:
 
         return await self._deliver_to_user(sender_id, message)
 
+    async def send_chat_message(
+        self,
+        sender_id: int,
+        receiver_id: int,
+        content: str
+    ) -> dict[str, int]:
+        self._validate_user_interaction(sender_id, receiver_id)
+
+        if not self.repository.are_friends(sender_id, receiver_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Users must be friends to chat",
+            )
+            
+        self.repository.save_chat_message(sender_id, receiver_id, content)
+
+        sender_name = self.repository.get_user_name(sender_id)
+        message = NotificationPayload(
+            type=NotificationEventType.CHAT,
+            title=f"New message from {sender_name}",
+            body=content,
+            actor_id=sender_id,
+            data={"sender_id": str(sender_id), "content": content},
+        )
+
+        return await self._deliver_to_user(receiver_id, message)
+
     async def _deliver_to_user(self, user_id: int, payload: NotificationPayload) -> dict[str, int]:
         delivered = await self.manager.send_to_user(user_id, payload)
         if delivered:

@@ -17,6 +17,8 @@ from schemas import (
     FriendRequestResponseEventRequest,
     StationReachedEventRequest,
     WebSocketClientMessage,
+    SendMessageRequest,
+    GetChatHistoryRequest,
 )
 
 
@@ -128,6 +130,26 @@ def create_app(
         service: NotificationService = Depends(get_service),
     ):
         return await service.notify_station_reached(actor_id=user_id, payload=payload)
+        
+    @app.post("/chat/history")
+    async def get_chat_history(
+        payload: GetChatHistoryRequest,
+        user_id: int = Depends(get_current_user_id),
+        service: NotificationService = Depends(get_service),
+    ):
+        return service.repository.get_chat_messages(user_id=user_id, friend_id=payload.friend_id, limit=payload.limit, offset=payload.offset)
+
+    @app.post("/chat/send")
+    async def send_rest_chat_message(
+        payload: SendMessageRequest,
+        user_id: int = Depends(get_current_user_id),
+        service: NotificationService = Depends(get_service),
+    ):
+        return await service.send_chat_message(
+            sender_id=user_id,
+            receiver_id=payload.receiver_id,
+            content=payload.content
+        )
 
     @app.websocket("/ws")
     async def websocket_endpoint(
@@ -145,12 +167,24 @@ def create_app(
         await manager_instance.connect(websocket, user_id, device_id)
         await manager_instance.send_ack(user_id, device_id, "WebSocket connection established")
 
+        notification_service: NotificationService = app.state.notification_service
+
         try:
             while True:
                 raw_message = await websocket.receive_json()
                 message = WebSocketClientMessage.model_validate(raw_message)
                 if message.type == "ping":
                     await websocket.send_json({"type": "pong", "detail": "alive"})
+                elif message.type == "chat":
+                    if message.receiver_id and message.content:
+                        try:
+                            await notification_service.send_chat_message(
+                                sender_id=user_id,
+                                receiver_id=message.receiver_id,
+                                content=message.content
+                            )
+                        except HTTPException as e:
+                            await websocket.send_json({"type": "error", "detail": e.detail})
         except WebSocketDisconnect:
             await manager_instance.disconnect(user_id, device_id)
         except Exception:

@@ -208,6 +208,47 @@ class NotificationRepository:
         with self._connection() as connection:
             connection.execute(query, {"token": token})
 
+    def save_chat_message(self, sender_id: int, receiver_id: int, content: str) -> None:
+        query = text(
+            """
+            INSERT INTO chat_messages (sender_id, receiver_id, content, created_at)
+            VALUES (:sender_id, :receiver_id, :content, NOW())
+            """
+        )
+        with self._connection() as connection:
+            connection.execute(query, {
+                "sender_id": sender_id,
+                "receiver_id": receiver_id,
+                "content": content
+            })
+
+    def get_chat_messages(self, user_id: int, friend_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
+        query = text(
+            """
+            SELECT id, sender_id, receiver_id, content, created_at
+            FROM chat_messages
+            WHERE (sender_id = :user_id AND receiver_id = :friend_id)
+               OR (sender_id = :friend_id AND receiver_id = :user_id)
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :offset
+            """
+        )
+        with self._connection() as connection:
+            rows = connection.execute(
+                query, 
+                {"user_id": user_id, "friend_id": friend_id, "limit": limit, "offset": offset}
+            ).fetchall()
+            
+        return [
+            {
+                "id": row.id,
+                "sender_id": row.sender_id,
+                "receiver_id": row.receiver_id,
+                "content": row.content,
+                "created_at": row.created_at.isoformat() if row.created_at else None
+            }
+            for row in rows
+        ]
 
 def get_user_friends(user_id: int):
     return NotificationRepository.from_env().get_friend_device_tokens(user_id)

@@ -51,6 +51,19 @@ class ConnectionManager:
                 await self.disconnect(user_id, device_id)
         return delivered
 
+    async def send_json_to_user(self, user_id: int, payload: dict) -> bool:
+        async with self._lock:
+            user_connections = list(self._connections.get(user_id, {}).items())
+
+        delivered = False
+        for device_id, context in user_connections:
+            try:
+                await context.websocket.send_json(payload)
+                delivered = True
+            except Exception:
+                await self.disconnect(user_id, device_id)
+        return delivered
+
     async def send_ack(self, user_id: int, device_id: str, detail: str) -> None:
         async with self._lock:
             context = self._connections.get(user_id, {}).get(device_id)
