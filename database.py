@@ -119,7 +119,7 @@ class NotificationRepository:
     def get_friend_device_tokens(self, user_id: int) -> dict[int, list[str]]:
         query = text(
             """
-            SELECT friend_id, fcm_token
+            SELECT Distinct friend_id, fcm_token
             FROM (
                 SELECT
                     CASE

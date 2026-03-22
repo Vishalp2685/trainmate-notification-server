@@ -60,7 +60,6 @@ class NotificationService:
             delivered = await self.manager.send_to_user(friend_id, message)
             if delivered:
                 live_count += 1
-                continue
 
             result = self.push_client.send_notification(
                 tokens=tokens,
