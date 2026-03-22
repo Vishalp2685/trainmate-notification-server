@@ -73,7 +73,7 @@ def send_station_push_notification(friend_name: str, device_token: str):
         [device_token],
         "Friend status update",
         f"{friend_name} has reached the station.",
-        {"event_type": "station_reached"},
+        {"type": "station_reached"},
     )
     return result["success_count"] == 1
 
@@ -89,7 +89,7 @@ def send_friend_request_status_notification(friend_name: str, status: str, devic
         [device_token],
         "Friend request update",
         body,
-        {"event_type": "friend_request_response", "status": status},
+        {"type": "friend_request_response", "status": status},
     )
     return result["success_count"] == 1
 

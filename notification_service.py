@@ -65,7 +65,7 @@ class NotificationService:
                 tokens=tokens,
                 title=message.title,
                 body=message.body,
-                data=message.data | {"event_type": message.type.value},
+                data=message.data | {"type": message.type.value, "actor_id": str(actor_id)},
             )
             push_count += result["success_count"]
             self._delete_invalid_tokens(result["invalid_tokens"])
@@ -152,7 +152,7 @@ class NotificationService:
             tokens=self.repository.get_user_tokens(user_id),
             title=payload.title,
             body=payload.body,
-            data=payload.data | {"event_type": payload.type.value},
+            data=payload.data | {"type": payload.type.value, "actor_id": str(payload.actor_id)},
         )
         self._delete_invalid_tokens(result["invalid_tokens"])
         return {"live_deliveries": 0, "push_deliveries": result["success_count"]}
