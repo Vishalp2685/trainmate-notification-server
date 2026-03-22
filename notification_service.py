@@ -99,12 +99,6 @@ class NotificationService:
         sender_id = payload.sender_id
         self._validate_user_interaction(receiver_id, sender_id)
 
-        if not self.repository.friend_request_exists(sender_id=sender_id, receiver_id=receiver_id):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Friend request not found",
-            )
-
         receiver_name = self.repository.get_user_name(receiver_id)
         message = NotificationPayload(
             type=NotificationEventType.FRIEND_REQUEST_RESPONSE,
