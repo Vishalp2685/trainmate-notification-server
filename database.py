@@ -157,6 +157,13 @@ class NotificationRepository:
         device_name: str | None,
         device_type: str | None,
     ) -> None:
+        # First, remove the fcm_token from any other device to prevent unique constraint violations
+        delete_query = text(
+            """
+            DELETE FROM device_tokens
+            WHERE fcm_token = :fcm_token AND device_id != :device_id
+            """
+        )
         update_query = text(
             """
             UPDATE device_tokens
@@ -199,6 +206,7 @@ class NotificationRepository:
             "device_type": device_type,
         }
         with self._connection() as connection:
+            connection.execute(delete_query, params)
             result = connection.execute(update_query, params)
             if result.rowcount == 0:
                 connection.execute(insert_query, params)
